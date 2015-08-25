@@ -290,10 +290,11 @@ class Elasticsearch extends \Mmanos\Search\Index
 	 * @param mixed $id
 	 * @param array $fields
 	 * @param array $parameters
+         * @param string|null $type
 	 *
 	 * @return bool
 	 */
-	public function insert($id, array $fields, array $parameters = array())
+	public function insert($id, array $fields, array $parameters = array(), $type = null)
 	{
 		try {
 			$this->delete($id);
@@ -305,7 +306,7 @@ class Elasticsearch extends \Mmanos\Search\Index
 
 		$this->getClient()->index(array(
 			'index' => $this->name,
-			'type'  => static::$default_type,
+			'type'  => !is_null($type) ? $type : static::$default_type,
 			'id'    => $id,
 			'body'  => $fields,
 		));
