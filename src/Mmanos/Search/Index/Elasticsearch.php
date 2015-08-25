@@ -184,9 +184,12 @@ class Elasticsearch extends \Mmanos\Search\Index
 		}
 
                 if (isset($options['sort'])) {
-                    foreach ($options['sort'] as $sort) {
-                        $query['sort'][] = [$sort['field'] => ['order' => $sort['direction']]];
+                    $sort = '';
+                    for ($i = 0; $i < count($options['sort']); $i++) {
+                        $s = $options['sort'][$i];
+                        $sort += ($i == 0 ? '' : ',') . $s['field'] . ':' . $s['direction'];
                     }
+                    $query['sort'] = $sort;
                 }
 
 		if (isset($query['id'])) {
