@@ -10,21 +10,21 @@ class Elasticsearch extends \Mmanos\Search\Index
 	 * @var string
 	 */
 	public static $default_type = 'default';
-	
+
 	/**
 	 * The Elasticsearch client shared by all instances.
 	 *
 	 * @var \Elasticsearch\Client
 	 */
 	protected static $client;
-	
+
 	/**
 	 * An array of stored query totals to help reduce subsequent count calls.
 	 *
 	 * @var array
 	 */
 	protected $stored_query_totals = array();
-	
+
 	/**
 	 * Get the Elasticsearch client associated with this instance.
 	 *
@@ -37,10 +37,10 @@ class Elasticsearch extends \Mmanos\Search\Index
 				Config::get('laravel-search::connections.elasticsearch.config', array())
 			);
 		}
-		
+
 		return static::$client;
 	}
-	
+
 	/**
 	 * Create the index.
 	 *
@@ -51,21 +51,21 @@ class Elasticsearch extends \Mmanos\Search\Index
 	public function createIndex(array $fields = array())
 	{
 		$properties = array('_geoloc' => array('type' => 'geo_point'));
-		
+
 		foreach ($fields as $field) {
 			$properties[$field] = array('type' => 'string');
 		}
-		
+
 		$body['mappings'][static::$default_type]['properties'] = $properties;
-		
+
 		$this->getClient()->indices()->create(array(
 			'index' => $this->name,
 			'body'  => $body,
 		));
-		
+
 		return true;
 	}
-	
+
 	/**
 	 * Get a new query instance from the driver.
 	 *
@@ -78,7 +78,7 @@ class Elasticsearch extends \Mmanos\Search\Index
 			'body'  => array('query' => array()),
 		);
 	}
-	
+
 	/**
 	 * Add a search/where clause to the given query based on the given condition.
 	 * Return the given $query instance when finished.
@@ -91,27 +91,27 @@ class Elasticsearch extends \Mmanos\Search\Index
 	 *                         - phrase     : match as a phrase
 	 *                         - filter     : filter results on value
 	 *                         - fuzzy      : fuzziness value (0 - 1)
-	 * 
+	 *
 	 * @return array
 	 */
 	public function addConditionToQuery($query, array $condition)
 	{
 		$value = trim(array_get($condition, 'value'));
 		$field = array_get($condition, 'field', '_all');
-		
+
 		if ($field && 'xref_id' == $field) {
 			$query['id'] = $value;
 			return $query;
 		}
-		
+
 		if (empty($field) || '*' === $field) {
 			$field = '_all';
 		}
 		$field = (array) $field;
-		
+
 		$occur = empty($condition['required']) ? 'should' : 'must';
 		$occur = empty($condition['prohibited']) ? $occur : 'must_not';
-		
+
 		if (isset($condition['fuzzy']) && false !== $condition['fuzzy']) {
 			$fuzziness = .5;
 			if (is_numeric($condition['fuzzy'])
@@ -150,12 +150,12 @@ class Elasticsearch extends \Mmanos\Search\Index
 				'type'   => $is_phrase ? 'phrase' : 'best_fields',
 			);
 		}
-		
+
 		$query['body']['query']['filtered']['query']['bool'][$occur][][$match_type] = $definition;
-		
+
 		return $query;
 	}
-	
+
 	/**
 	 * Execute the given query and return the results.
 	 * Return an array of records where each record is an array
@@ -167,7 +167,7 @@ class Elasticsearch extends \Mmanos\Search\Index
 	 * @param array $query
 	 * @param array $options - limit  : max # of records to return
 	 *                       - offset : # of records to skip
-	 * 
+	 *
 	 * @return array
 	 */
 	public function runQuery($query, array $options = array())
@@ -177,12 +177,18 @@ class Elasticsearch extends \Mmanos\Search\Index
 		if (isset($options['columns']) && !in_array('*', $options['columns'])) {
 			$query['_source'] = $options['columns'];
 		}
-		
+
 		if (isset($options['limit']) && isset($options['offset'])) {
 			$query['from'] = $options['offset'];
 			$query['size'] = $options['limit'];
 		}
-		
+
+                if (isset($options['sort'])) {
+                    foreach ($options['sort'] as $sort) {
+                        $query['sort'][] = [$sort['field'] => ['order' => $sort['direction']]];
+                    }
+                }
+
 		if (isset($query['id'])) {
 			try {
 				$response = $this->getClient()->get(array(
@@ -193,23 +199,23 @@ class Elasticsearch extends \Mmanos\Search\Index
 			} catch (\Elasticsearch\Common\Exceptions\Missing404Exception $e) {
 				$response = array();
 			}
-			
+
 			if (empty($response)) {
 				$this->stored_query_totals[md5(serialize($original_query))] = 0;
 				return array();
 			}
-			
+
 			$this->stored_query_totals[md5(serialize($original_query))] = 1;
-			
+
 			$parameters = array_get($response, '_source._parameters');
-			
+
 			if (!empty($parameters)) {
 				$parameters = json_decode(base64_decode($parameters), true);
 			}
 			else {
 				$parameters = array();
 			}
-			
+
 			return array(array_merge(
 				array(
 					'id' => array_get($response, '_id'),
@@ -217,16 +223,16 @@ class Elasticsearch extends \Mmanos\Search\Index
 				$parameters
 			));
 		}
-		
+
 		try {
 			$response = $this->getClient()->search($query);
 			$this->stored_query_totals[md5(serialize($original_query))] = array_get($response, 'hits.total');
 		} catch (\Elasticsearch\Common\Exceptions\Missing404Exception $e) {
 			$response = array();
 		}
-		
+
 		$results = array();
-		
+
 		if (array_get($response, 'hits.hits')) {
 			foreach (array_get($response, 'hits.hits') as $hit) {
 				$fields = array(
@@ -240,26 +246,26 @@ class Elasticsearch extends \Mmanos\Search\Index
 				}
 
 				$parameters = array_get($hit, '_source._parameters');
-				
+
 				if (!empty($parameters)) {
 					$parameters = json_decode(base64_decode($parameters), true);
 				}
 				else {
 					$parameters = array();
 				}
-				
+
 				$results[] = array_merge($fields, $parameters);
 			}
 		}
-		
+
 		return $results;
 	}
-	
+
 	/**
 	 * Execute the given query and return the total number of results.
 	 *
 	 * @param array $query
-	 * 
+	 *
 	 * @return int
 	 */
 	public function runCount($query)
@@ -267,14 +273,14 @@ class Elasticsearch extends \Mmanos\Search\Index
 		if (isset($this->stored_query_totals[md5(serialize($query))])) {
 			return $this->stored_query_totals[md5(serialize($query))];
 		}
-		
+
 		try {
 			return array_get($this->getClient()->search($query), 'hits.total');
 		} catch (\Elasticsearch\Common\Exceptions\Missing404Exception $e) {
 			return 0;
 		}
 	}
-	
+
 	/**
 	 * Add a new document to the index.
 	 * Any existing document with the given $id should be deleted first.
@@ -284,7 +290,7 @@ class Elasticsearch extends \Mmanos\Search\Index
 	 * @param mixed $id
 	 * @param array $fields
 	 * @param array $parameters
-	 * 
+	 *
 	 * @return bool
 	 */
 	public function insert($id, array $fields, array $parameters = array())
@@ -292,26 +298,26 @@ class Elasticsearch extends \Mmanos\Search\Index
 		try {
 			$this->delete($id);
 		} catch (\Elasticsearch\Common\Exceptions\Missing404Exception $e) {}
-		
+
 		if (!empty($parameters)) {
 			$fields['_parameters'] = base64_encode(json_encode($parameters));
 		}
-		
+
 		$this->getClient()->index(array(
 			'index' => $this->name,
 			'type'  => static::$default_type,
 			'id'    => $id,
 			'body'  => $fields,
 		));
-		
+
 		return true;
 	}
-	
+
 	/**
 	 * Delete the document from the index associated with the given $id.
 	 *
 	 * @param mixed $id
-	 * 
+	 *
 	 * @return bool
 	 */
 	public function delete($id)
@@ -325,16 +331,16 @@ class Elasticsearch extends \Mmanos\Search\Index
 		} catch (\Elasticsearch\Common\Exceptions\Missing404Exception $e) {
 			return false;
 		}
-		
+
 		$doc = $this->getClient()->delete(array(
 			'index' => $this->name,
 			'type'  => static::$default_type,
 			'id'    => $id,
 		));
-		
+
 		return true;
 	}
-	
+
 	/**
 	 * Delete the entire index.
 	 *
@@ -349,7 +355,7 @@ class Elasticsearch extends \Mmanos\Search\Index
 		} catch (\Elasticsearch\Common\Exceptions\Missing404Exception $e) {
 			return false;
 		}
-		
+
 		return true;
 	}
 }
