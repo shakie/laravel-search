@@ -1,5 +1,5 @@
 {
-    "name": "shakie/laravel-search",
+    "name": "mmanos/laravel-search",
     "description": "A search package for Laravel 4.",
     "keywords": ["laravel", "search", "lucene", "zendsearch", "elasticsearch", "algolia", "full", "text"],
     "authors": [
