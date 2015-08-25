@@ -279,6 +279,10 @@ class Query
 			$options['offset'] = $this->offset;
 		}
 
+                if ($this->sort) {
+                    $options['sort'] = $this->sort;
+                }
+
 		$this->executeCallbacks();
 
 		$results = $this->index->runQuery($this->query, $options);
