@@ -104,6 +104,15 @@ class Query
 		return $this;
 	}
 
+        public function filter($type, $field, $value)
+        {
+            $this->query = $this->index->addFilterToQuery($this->query, array(
+                'type' => $type,
+                'field' => $field,
+                'value' => $value
+            ));
+        }
+
 	/**
 	 * Add a geo distance where clause to the query.
 	 *

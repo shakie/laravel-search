@@ -162,7 +162,9 @@ abstract class Index
 	 */
 	abstract public function addConditionToQuery($query, array $condition);
 
-	/**
+        abstract public function addFilterToQuery($query, array $filter);
+
+        /**
 	 * Execute the given query and return the results.
 	 * Return an array of records where each record is an array
 	 * containing:

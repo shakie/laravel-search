@@ -156,7 +156,15 @@ class Elasticsearch extends \Mmanos\Search\Index
 		return $query;
 	}
 
-	/**
+        public function addFilterToQuery($query, array $filter)
+        {
+            $query['body']['query']['filtered']['filter'][$filter['type']][] = ['term' => [$filter['field'] => $filter['value']]];
+
+            return $query;
+        }
+
+
+        /**
 	 * Execute the given query and return the results.
 	 * Return an array of records where each record is an array
 	 * containing:
