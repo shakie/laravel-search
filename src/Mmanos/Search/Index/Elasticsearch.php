@@ -158,7 +158,10 @@ class Elasticsearch extends \Mmanos\Search\Index
 
         public function addFilterToQuery($query, array $filter)
         {
-            $query['body']['query']['filtered']['filter'][$filter['type']][] = ['term' => [$filter['field'] => $filter['value']]];
+            if (!isset($query['body']['query']['filtered']['filter'][$filter['type']]['_cache'])) {
+                $query['body']['query']['filtered']['filter'][$filter['type']]['_cache'] = true;
+            }
+            $query['body']['query']['filtered']['filter'][$filter['type']]['filters'][] = ['term' => [$filter['field'] => $filter['value']]];
 
             return $query;
         }

@@ -104,13 +104,15 @@ class Query
 		return $this;
 	}
 
-        public function filter($type, $field, $value)
+        public function filter($field, $value, $type = 'or')
         {
             $this->query = $this->index->addFilterToQuery($this->query, array(
                 'type' => $type,
                 'field' => $field,
                 'value' => $value
             ));
+
+            return $this;
         }
 
 	/**
