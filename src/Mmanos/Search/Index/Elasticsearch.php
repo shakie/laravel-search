@@ -33,7 +33,7 @@ class Elasticsearch extends \Mmanos\Search\Index
 	protected function getClient()
 	{
 		if (!static::$client) {
-                        $builder = \Elasticsearch\ClientBuilder::create();
+//                        $builder = \Elasticsearch\ClientBuilder::create();
 //                        $builder->setHosts(Config::get('laravel-search::connections.elasticsearch.config.hosts'));
 //                        static::$client = $builder->build();
 			static::$client = new \Elasticsearch\Client(
