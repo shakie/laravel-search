@@ -34,11 +34,11 @@ class Elasticsearch extends \Mmanos\Search\Index
 	{
 		if (!static::$client) {
                         $builder = \Elasticsearch\ClientBuilder::create();
-                        $builder->setHosts(Config::get('laravel-search::connections.elasticsearch.config.hosts'));
-                        static::$client = $builder->build();
-//			static::$client = new \Elasticsearch\Client(
-//				Config::get('laravel-search::connections.elasticsearch.config', array())
-//			);
+//                        $builder->setHosts(Config::get('laravel-search::connections.elasticsearch.config.hosts'));
+//                        static::$client = $builder->build();
+			static::$client = new \Elasticsearch\Client(
+				Config::get('laravel-search::connections.elasticsearch.config', array())
+			);
 		}
 
 		return static::$client;
